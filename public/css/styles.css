@@ -525,6 +525,31 @@ body {
   margin-top: 2px;
 }
 
+/* ── Charts Grid (side-by-side) ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 16px;
+}
+
+.chart-inner-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.logistics-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .chart-container {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -835,4 +860,5 @@ body {
   .filter-panel { border-right: none; border-bottom: 1px solid var(--border); }
   .table-area, .chart-area { height: auto; overflow: visible; }
   .scenarios-cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .charts-grid { grid-template-columns: 1fr; }
 }

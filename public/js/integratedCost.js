@@ -1,6 +1,13 @@
-// integratedCost.js — Section 2: Integrated Cost stacked bar chart
+// integratedCost.js — Section 2: Integrated Cost stacked bar + logistics doughnut
 
 let intChart = null;
+let logisticsChart = null;
+
+// ── Teal gradient palette for logistics doughnut ──
+const LOG_COLORS = [
+  '#10b981', '#059669', '#34d399', '#047857',
+  '#6ee7b7', '#065f46', '#a7f3d0', '#064e3b',
+];
 
 // ── Plugin: draw total $ on top of each stacked bar ──
 const intTotalLabelPlugin = {
@@ -22,6 +29,41 @@ const intTotalLabelPlugin = {
       ctx.textBaseline = 'bottom';
       ctx.fillText(label, bar.x, bar.y - 5);
     });
+    ctx.restore();
+  }
+};
+
+// ── Plugin: center label inside doughnut ──
+const doughnutCenterPlugin = {
+  id: 'doughnutCenter',
+  afterDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const { ctx, chartArea: { width, height, left, top } } = chart;
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    // Compute total
+    const total = (chart.data.datasets[0]?.data || []).reduce((s, v) => s + (v || 0), 0);
+    if (!total) return;
+
+    const label = total >= 1e6
+      ? `$${(total / 1e6).toFixed(2)}M`
+      : `$${(total / 1000).toFixed(0)}K`;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Main value
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 16px "Inter", system-ui, sans-serif';
+    ctx.fillText(label, centerX, centerY - 8);
+
+    // Sub-label
+    ctx.fillStyle = '#475569';
+    ctx.font = '500 10px "Inter", system-ui, sans-serif';
+    ctx.fillText('LOGISTICS', centerX, centerY + 10);
+
     ctx.restore();
   }
 };
@@ -106,7 +148,6 @@ function renderIntegratedCost(data) {
   // ── KPI Cards ──
   const demand = data.annualDemand[program];
 
-  // Sum logistics segments dynamically
   const logisticsKeys = ['Tank Logistics','Supplier to port','Overseas freight','India/China customs',
     'Unloading - other costs','Customs clearance US','US freight cost','Handling at ELP',
     'Transport ELP - CUU','Domestic freight cost'];
@@ -137,43 +178,35 @@ function renderIntegratedCost(data) {
     </div>
   `).join('');
 
-  // ── Chart ──
-  const labels = Object.keys(result.segments);
-  const values = Object.values(result.segments);
-  const colors = labels.map(l => SEGMENT_COLORS[l] || '#4f8ef7');
-
-  const barLabel = `${supplier} · ${program} · ${source}${steelOrigin === 'US' ? ' · 🇺🇸 US' : ''}`;
+  // ── MAIN CHART: Stacked Bar ──
+  const segLabels = Object.keys(result.segments);
+  const segValues = Object.values(result.segments);
+  const segColors = segLabels.map(l => SEGMENT_COLORS[l] || '#4f8ef7');
+  const barLabel  = `${supplier} · ${program} · ${source}${steelOrigin === 'US' ? ' · 🇺🇸 US' : ''}`;
 
   intChart = getOrCreateChart('integrated-chart', {
     type: 'bar',
     plugins: [intTotalLabelPlugin],
     data: {
       labels: [barLabel],
-      datasets: labels.map((lbl, i) => ({
+      datasets: segLabels.map((lbl, i) => ({
         label: lbl,
-        data: [values[i]],
-        backgroundColor: colors[i] + 'cc',
-        borderColor: colors[i],
+        data: [segValues[i]],
+        backgroundColor: segColors[i] + 'cc',
+        borderColor: segColors[i],
         borderWidth: 1,
-        borderRadius: i === labels.length - 1 ? { topLeft: 6, topRight: 6 } : 0,
+        borderRadius: i === segLabels.length - 1 ? { topLeft: 6, topRight: 6 } : 0,
       }))
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      // Chart.js v4: interaction must be at top-level options, not inside plugins.tooltip
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
+      interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 30, right: 10, left: 5, bottom: 5 } },
       plugins: {
         legend: {
           position: 'right',
-          labels: {
-            boxWidth: 14, boxHeight: 14, padding: 14,
-            color: '#94a3b8', font: { size: 11 },
-          }
+          labels: { boxWidth: 14, boxHeight: 14, padding: 14, color: '#94a3b8', font: { size: 11 } }
         },
         tooltip: {
           enabled: true,
@@ -200,15 +233,16 @@ function renderIntegratedCost(data) {
           beginAtZero: true,
           grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: {
-            padding: 8,
-            color: '#94a3b8',
-            font: { size: 11 },
+            padding: 8, color: '#94a3b8', font: { size: 11 },
             callback: v => v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : v >= 1000 ? `$${(v/1000).toFixed(0)}K` : `$${v}`,
           }
         }
       }
     }
   });
+
+  // ── SECONDARY CHART: Logistics Doughnut ──
+  renderLogisticsChart(data, program, source, logTotal);
 
   // ── Breakdown Table ──
   const wrap  = document.getElementById('int-breakdown-wrap');
@@ -234,4 +268,86 @@ function renderIntegratedCost(data) {
     <td class="num" style="color:var(--blue-light)">${fmt.usd(result.total, 0)}</td>
     <td class="num" style="color:var(--text-muted)">100.0%</td>
   </tr>`;
+}
+
+// ── Logistics Doughnut Chart ──────────────────────────────────────────────────
+function renderLogisticsChart(data, program, source, logTotal) {
+  const canvas  = document.getElementById('logistics-chart');
+  const emptyEl = document.getElementById('logistics-empty');
+
+  // Get individual logistics line items (always expanded, regardless of breakdown toggle)
+  const logItems = data.tankLogistics.filter(r =>
+    r.program === program && r.source === source && r.amount != null && r.amount > 0
+  );
+
+  if (logItems.length === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = '';
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+    return;
+  }
+
+  canvas.style.display = '';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  // Compute % of total logistics for each item
+  const doughnutTotal = logItems.reduce((s, r) => s + r.amount, 0);
+
+  logisticsChart = getOrCreateChart('logistics-chart', {
+    type: 'doughnut',
+    plugins: [doughnutCenterPlugin],
+    data: {
+      labels: logItems.map(r => r.concept),
+      datasets: [{
+        data: logItems.map(r => r.amount),
+        backgroundColor: LOG_COLORS.slice(0, logItems.length).map(c => c + 'dd'),
+        borderColor: LOG_COLORS.slice(0, logItems.length),
+        borderWidth: 1.5,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      interaction: { mode: 'nearest', intersect: true },
+      layout: { padding: { top: 5, bottom: 5, left: 5, right: 5 } },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            padding: 10,
+            color: '#94a3b8',
+            font: { size: 10 },
+            // Truncate long labels
+            generateLabels: chart => {
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((lbl, i) => ({
+                text: lbl.length > 22 ? lbl.substring(0, 22) + '…' : lbl,
+                fillStyle: ds.backgroundColor[i],
+                strokeStyle: ds.borderColor[i],
+                lineWidth: 1,
+                index: i,
+              }));
+            }
+          }
+        },
+        tooltip: {
+          enabled: true,
+          callbacks: {
+            title: items => items.length ? items[0].label : '',
+            label: ctx => {
+              const v = ctx.raw;
+              const pct = doughnutTotal > 0 ? ((v / doughnutTotal) * 100).toFixed(1) : '0.0';
+              return `  ${fmt.usd(v, 0)}  (${pct}% of logistics)`;
+            },
+            footer: () => [``, `  Total logistics: ${fmt.usd(doughnutTotal, 0)}`]
+          }
+        }
+      }
+    }
+  });
 }

@@ -246,9 +246,19 @@
         <!-- KPI Cards -->
         <div class="kpi-row" id="int-kpi-row"></div>
 
-        <!-- Stacked Bar Chart -->
-        <div class="chart-container">
-          <canvas id="integrated-chart"></canvas>
+        <!-- Charts Grid: Main + Logistics Breakdown -->
+        <div class="charts-grid">
+          <div class="chart-container">
+            <div class="chart-inner-title">Integrated Cost Overview</div>
+            <canvas id="integrated-chart"></canvas>
+          </div>
+          <div class="chart-container" id="logistics-chart-container">
+            <div class="chart-inner-title">Logistics Cost Breakdown</div>
+            <canvas id="logistics-chart"></canvas>
+            <div class="logistics-empty" id="logistics-empty" style="display:none">
+              <span>No logistics detail available</span>
+            </div>
+          </div>
         </div>
 
         <!-- Cost breakdown table -->
