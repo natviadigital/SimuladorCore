@@ -56,7 +56,7 @@ const doughnutCenterPlugin = {
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 16px "Inter", system-ui, sans-serif';
     ctx.fillText(label, cx, cy - 8);
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#94a3b8';
     ctx.font = '600 10px "Inter", system-ui, sans-serif';
     ctx.fillText('LOGISTICS', cx, cy + 10);
     ctx.restore();
@@ -348,7 +348,7 @@ function renderLogisticsChart(data, program, source, logTotal) {
           position: 'bottom',
           labels: {
             boxWidth: 10, boxHeight: 10, padding: 8,
-            color: '#94a3b8', font: { size: 10 },
+            color: '#ffffff', font: { size: 10 },
             generateLabels: chart => {
               const ds    = chart.data.datasets[0];
               const total = ds.data.reduce((s, v) => s + (v || 0), 0);
@@ -362,6 +362,7 @@ function renderLogisticsChart(data, program, source, logTotal) {
                   strokeStyle: ds.borderColor[i],
                   lineWidth: 1,
                   index: i,
+                  fontColor: '#ffffff', // Ensures label text color is white in Chart.js
                 };
               });
             }
