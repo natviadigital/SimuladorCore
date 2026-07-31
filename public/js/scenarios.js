@@ -34,6 +34,48 @@ const scnTotalLabelPlugin = {
   }
 };
 
+// ── Plugin: draw percentage label inside each stacked segment ──
+const stackedPercentagesPlugin = {
+  id: 'stackedPercentages',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'bar') return;
+    const { ctx, data } = chart;
+    const metaSets = data.datasets.map((_, i) => chart.getDatasetMeta(i));
+    if (!metaSets.length) return;
+
+    const numBars = metaSets[0].data.length;
+    for (let barIdx = 0; barIdx < numBars; barIdx++) {
+      const totalVal = data.datasets.reduce((sum, ds) => sum + (Number(sum) === 0 ? 0 : 0) + (Number(ds.data[barIdx]) || 0), 0);
+      if (!totalVal) continue;
+
+      data.datasets.forEach((dataset, dsIdx) => {
+        const val = Number(dataset.data[barIdx]) || 0;
+        if (!val) return;
+
+        const pct = (val / totalVal) * 100;
+        if (pct < 5) return; // Hide on segments under 5% for clean styling
+
+        const meta = metaSets[dsIdx];
+        const bar = meta.data[barIdx];
+        if (!bar) return;
+
+        const { x, y, base } = bar;
+        const cy = (y + base) / 2;
+
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px "Inter", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 3;
+        ctx.fillText(`${pct.toFixed(0)}%`, x, cy);
+        ctx.restore();
+      });
+    }
+  }
+};
+
 // ── Check if Mitter is available for a given steelOrigin ──
 function isMitterAvailable(data, steelOrigin) {
   const coreSupplier = steelOrigin === 'US' ? 'CLEVELAND CLIFFS' : 'JFE';
@@ -337,7 +379,7 @@ function renderScenariosChart(data) {
 
   scenariosChart = getOrCreateChart('scenarios-chart', {
     type: 'bar',
-    plugins: [scnTotalLabelPlugin],
+    plugins: [scnTotalLabelPlugin, stackedPercentagesPlugin],
     data: { labels, datasets },
     options: {
       responsive: true,
