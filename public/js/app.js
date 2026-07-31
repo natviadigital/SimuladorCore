@@ -34,6 +34,11 @@
       tabSections.forEach(s => {
         s.classList.toggle('active', s.id === `section-${target}`);
       });
+      // Re-render scenarios chart when tab becomes visible
+      // (Chart.js can't measure canvas dimensions when section is display:none)
+      if (target === 'scenarios') {
+        requestAnimationFrame(() => renderScenariosChart(data));
+      }
     });
   });
 

@@ -12,7 +12,7 @@ const CORE_METHODS = [
 
 // ── Plugin: draw total $ on top of each scenario bar ──
 const scnTotalLabelPlugin = {
-  id: 'scnStackedTotals',
+  id: 'scnTotalsLabel',
   afterDraw(chart) {
     const { ctx, data } = chart;
     if (!data.datasets.length) return;
@@ -35,8 +35,8 @@ const scnTotalLabelPlugin = {
 };
 
 // ── Plugin: draw percentage label inside each stacked segment ──
-const stackedPercentagesPlugin = {
-  id: 'stackedPercentages',
+const scnPercentagesPlugin = {
+  id: 'scnStackedPercentages',
   afterDatasetsDraw(chart) {
     if (chart.config.type !== 'bar') return;
     const { ctx, data } = chart;
@@ -45,7 +45,7 @@ const stackedPercentagesPlugin = {
 
     const numBars = metaSets[0].data.length;
     for (let barIdx = 0; barIdx < numBars; barIdx++) {
-      const totalVal = data.datasets.reduce((sum, ds) => sum + (Number(sum) === 0 ? 0 : 0) + (Number(ds.data[barIdx]) || 0), 0);
+      const totalVal = data.datasets.reduce((s, ds) => s + (Number(ds.data[barIdx]) || 0), 0);
       if (!totalVal) continue;
 
       data.datasets.forEach((dataset, dsIdx) => {
@@ -317,9 +317,10 @@ function refreshScnSuppliers(data, id) {
 }
 
 function renderScenariosChart(data) {
+  const scnCanvas = document.getElementById('scenarios-chart');
   if (scenarios.length === 0) {
     document.getElementById('delta-wrap').innerHTML = '';
-    const existing = Chart.getChart('scenarios-chart');
+    const existing = scnCanvas ? Chart.getChart(scnCanvas) : null;
     if (existing) existing.destroy();
     return;
   }
@@ -379,7 +380,7 @@ function renderScenariosChart(data) {
 
   scenariosChart = getOrCreateChart('scenarios-chart', {
     type: 'bar',
-    plugins: [scnTotalLabelPlugin, stackedPercentagesPlugin],
+    plugins: [scnTotalLabelPlugin, scnPercentagesPlugin],
     data: { labels, datasets },
     options: {
       responsive: true,
