@@ -3,10 +3,16 @@
 let intChart = null;
 let logisticsChart = null;
 
-// ── Teal gradient palette for logistics doughnut ──
+// ── Varied palette so every logistics segment is clearly distinct ──
 const LOG_COLORS = [
-  '#10b981', '#059669', '#34d399', '#047857',
-  '#6ee7b7', '#065f46', '#a7f3d0', '#064e3b',
+  '#10b981', // teal      — Overseas freight / Domestic freight
+  '#3b82f6', // blue      — Supplier to port
+  '#f59e0b', // amber     — India/China customs
+  '#8b5cf6', // purple    — Unloading costs
+  '#06b6d4', // cyan      — Customs clearance US
+  '#ec4899', // pink      — US freight cost
+  '#84cc16', // lime      — Handling at ELP
+  '#f97316', // orange    — Transport ELP–CUU
 ];
 
 // ── Plugin: draw total $ on top of each stacked bar ──
@@ -33,38 +39,62 @@ const intTotalLabelPlugin = {
   }
 };
 
-// ── Plugin: center label inside doughnut ──
+// ── Plugin: draw $ total in doughnut center ──
 const doughnutCenterPlugin = {
   id: 'doughnutCenter',
   afterDraw(chart) {
     if (chart.config.type !== 'doughnut') return;
     const { ctx, chartArea: { width, height, left, top } } = chart;
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-
-    // Compute total
+    const cx = left + width / 2;
+    const cy = top + height / 2;
     const total = (chart.data.datasets[0]?.data || []).reduce((s, v) => s + (v || 0), 0);
     if (!total) return;
-
-    const label = total >= 1e6
-      ? `$${(total / 1e6).toFixed(2)}M`
-      : `$${(total / 1000).toFixed(0)}K`;
-
+    const label = total >= 1e6 ? `$${(total/1e6).toFixed(2)}M` : `$${(total/1000).toFixed(0)}K`;
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
-    // Main value
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 16px "Inter", system-ui, sans-serif';
-    ctx.fillText(label, centerX, centerY - 8);
-
-    // Sub-label
+    ctx.fillText(label, cx, cy - 8);
     ctx.fillStyle = '#475569';
-    ctx.font = '500 10px "Inter", system-ui, sans-serif';
-    ctx.fillText('LOGISTICS', centerX, centerY + 10);
-
+    ctx.font = '600 10px "Inter", system-ui, sans-serif';
+    ctx.fillText('LOGISTICS', cx, cy + 10);
     ctx.restore();
+  }
+};
+
+// ── Plugin: draw % label on each visible doughnut arc ──
+const doughnutLabelsPlugin = {
+  id: 'doughnutArcLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const { ctx } = chart;
+    const dataset = chart.data.datasets[0];
+    const total   = (dataset?.data || []).reduce((s, v) => s + (v || 0), 0);
+    if (!total) return;
+
+    chart.getDatasetMeta(0).data.forEach((arc, i) => {
+      const value = dataset.data[i];
+      if (!value) return;
+      const pct = (value / total) * 100;
+      if (pct < 4) return; // skip slivers
+
+      const mid   = (arc.startAngle + arc.endAngle) / 2;
+      const r     = (arc.outerRadius + arc.innerRadius) / 2;
+      const x     = arc.x + r * Math.cos(mid);
+      const y     = arc.y + r * Math.sin(mid);
+
+      ctx.save();
+      // Shadow for readability
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur  = 3;
+      ctx.fillStyle   = '#ffffff';
+      ctx.font        = 'bold 11px "Inter", system-ui, sans-serif';
+      ctx.textAlign   = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${pct.toFixed(0)}%`, x, y);
+      ctx.restore();
+    });
   }
 };
 
@@ -296,42 +326,44 @@ function renderLogisticsChart(data, program, source, logTotal) {
 
   logisticsChart = getOrCreateChart('logistics-chart', {
     type: 'doughnut',
-    plugins: [doughnutCenterPlugin],
+    plugins: [doughnutCenterPlugin, doughnutLabelsPlugin],
     data: {
       labels: logItems.map(r => r.concept),
       datasets: [{
         data: logItems.map(r => r.amount),
-        backgroundColor: LOG_COLORS.slice(0, logItems.length).map(c => c + 'dd'),
-        borderColor: LOG_COLORS.slice(0, logItems.length),
+        backgroundColor: LOG_COLORS.slice(0, logItems.length).map(c => c + 'e0'),
+        borderColor:     LOG_COLORS.slice(0, logItems.length),
         borderWidth: 1.5,
-        hoverOffset: 6,
+        hoverOffset: 8,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '62%',
+      cutout: '58%',
       interaction: { mode: 'nearest', intersect: true },
       layout: { padding: { top: 5, bottom: 5, left: 5, right: 5 } },
       plugins: {
         legend: {
           position: 'bottom',
           labels: {
-            boxWidth: 10,
-            boxHeight: 10,
-            padding: 10,
-            color: '#94a3b8',
-            font: { size: 10 },
-            // Truncate long labels
+            boxWidth: 10, boxHeight: 10, padding: 8,
+            color: '#94a3b8', font: { size: 10 },
             generateLabels: chart => {
-              const ds = chart.data.datasets[0];
-              return chart.data.labels.map((lbl, i) => ({
-                text: lbl.length > 22 ? lbl.substring(0, 22) + '…' : lbl,
-                fillStyle: ds.backgroundColor[i],
-                strokeStyle: ds.borderColor[i],
-                lineWidth: 1,
-                index: i,
-              }));
+              const ds    = chart.data.datasets[0];
+              const total = ds.data.reduce((s, v) => s + (v || 0), 0);
+              return chart.data.labels.map((lbl, i) => {
+                const v   = ds.data[i];
+                const pct = total > 0 ? ((v / total) * 100).toFixed(0) : 0;
+                const short = lbl.length > 18 ? lbl.substring(0, 18) + '…' : lbl;
+                return {
+                  text: `${short}  ${pct}%`,
+                  fillStyle: ds.backgroundColor[i],
+                  strokeStyle: ds.borderColor[i],
+                  lineWidth: 1,
+                  index: i,
+                };
+              });
             }
           }
         },
@@ -340,11 +372,15 @@ function renderLogisticsChart(data, program, source, logTotal) {
           callbacks: {
             title: items => items.length ? items[0].label : '',
             label: ctx => {
-              const v = ctx.raw;
-              const pct = doughnutTotal > 0 ? ((v / doughnutTotal) * 100).toFixed(1) : '0.0';
-              return `  ${fmt.usd(v, 0)}  (${pct}% of logistics)`;
+              const v     = ctx.raw;
+              const total = ctx.dataset.data.reduce((s, x) => s + (x || 0), 0);
+              const pct   = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0';
+              return `  ${fmt.usd(v, 0)}  —  ${pct}% of logistics`;
             },
-            footer: () => [``, `  Total logistics: ${fmt.usd(doughnutTotal, 0)}`]
+            footer: ctx => {
+              const total = ctx[0]?.dataset.data.reduce((s, x) => s + (x || 0), 0) || 0;
+              return [``, `  Total logistics: ${fmt.usd(total, 0)}`];
+            }
           }
         }
       }
