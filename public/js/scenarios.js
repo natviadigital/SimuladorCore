@@ -18,14 +18,34 @@ const scnTotalLabelPlugin = {
     if (!data.datasets.length) return;
     const lastMeta = chart.getDatasetMeta(data.datasets.length - 1);
     ctx.save();
+
+    // Calculate all totals first to identify the best (lowest cost) option
+    const totals = [];
     lastMeta.data.forEach((bar, i) => {
       const total = data.datasets.reduce((s, ds) => s + (Number(ds.data[i]) || 0), 0);
+      totals.push(total);
+    });
+    const validTotals = totals.filter(t => t > 0);
+    const minTotal = validTotals.length > 0 ? Math.min(...validTotals) : Infinity;
+
+    lastMeta.data.forEach((bar, i) => {
+      const total = totals[i];
       if (!total) return;
-      const label = total >= 1e6
+
+      const isBest = total === minTotal && validTotals.length >= 2;
+      let label = total >= 1e6
         ? `$${(total / 1e6).toFixed(2)}M`
         : `$${(total / 1000).toFixed(0)}K`;
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 11px "Inter", system-ui, sans-serif';
+
+      if (isBest) {
+        label = `⭐ ${label}`;
+        ctx.fillStyle = '#10b981'; // Green for the best option
+        ctx.font = 'bold 12px "Inter", system-ui, sans-serif';
+      } else {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 11px "Inter", system-ui, sans-serif';
+      }
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       ctx.fillText(label, bar.x, bar.y - 5);
@@ -370,10 +390,12 @@ function renderScenariosChart(data) {
   const labels = results.map(r => {
     const coreLabel = CORE_METHODS.find(m => m.value === r.scn.coreMethod)?.label || r.scn.coreMethod;
     const tariffLabel = r.result.tariffType === 'reduced' ? 'Reduced Tariff' : 'Original Tariff';
+    const oilLabel = r.scn.oilFill === 'lessOil' ? 'Less Oil (US Fill)' : 'Fill at Origin';
     return [
       r.scn.name,
       `Tank: ${r.scn.supplier || 'N/A'}`,
       `Core: ${coreLabel}`,
+      `Oil: ${oilLabel}`,
       `Tariff: ${tariffLabel}`
     ];
   });
