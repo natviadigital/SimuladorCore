@@ -64,7 +64,7 @@ function getOrCreateChart(id, config) {
 
 // ── Compute integrated cost for a configuration ──
 function computeIntegratedCost(data, cfg) {
-  const { program, source, supplier, steelOrigin, coreMethod, breakdown } = cfg;
+  const { program, source, supplier, steelOrigin, coreMethod, breakdown, oilFill } = cfg;
   const result = { segments: {}, total: 0, details: [] };
 
   // ── 1. TANK MATERIAL ──
@@ -135,13 +135,25 @@ function computeIntegratedCost(data, cfg) {
   result.segments['Core Material'] = coreCost;
 
   // ── 4. TARIFF ──
-  // Non-US or Overseas → Original tariff; both Domestic+US → Reduced 10%
+  // useOriginal: Non-US steel or Overseas source → higher tariff rate
+  // oilFill:     'origin' → standard tariff (oil in BOM)
+  //              'lessOil' → less-oil tariff (oil excluded from BOM, filled at US plant)
   const useOriginal = source === 'Overseas' || steelOrigin === 'Non-US';
-  const demand = data.annualDemand[program];
-  const tariff = useOriginal ? demand.originalTariff : demand.reducedTariff10;
+  const demand      = data.annualDemand[program];
+  const lessOil     = oilFill === 'lessOil';
+
+  const tariff = useOriginal
+    ? (lessOil ? demand.originalTariffLessOil : demand.originalTariff)
+    : (lessOil ? demand.reducedTariff10LessOil : demand.reducedTariff10);
+
   result.segments['Tariff'] = tariff;
-  result.details.push({ comp: 'Tariff', sub: useOriginal ? 'Original Tariff (25%/15%)' : 'Reduced Tariff (10%)', amt: tariff });
   result.tariffType = useOriginal ? 'original' : 'reduced';
+  result.oilFill    = oilFill || 'origin';
+
+  const tariffLabel = useOriginal
+    ? (lessOil ? 'Original Tariff — Less Oil (25%/15%)' : 'Original Tariff (25%/15%)')
+    : (lessOil ? 'Reduced Tariff — Less Oil (10%)'      : 'Reduced Tariff (10%)');
+  result.details.push({ comp: 'Tariff', sub: tariffLabel, amt: tariff });
 
   // ── Total ──
   result.total = Object.values(result.segments).reduce((s, v) => s + (v || 0), 0);

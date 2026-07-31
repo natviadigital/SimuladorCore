@@ -101,13 +101,15 @@ function initScenarios(data) {
     name: 'Scenario A — Domestic',
     source: 'Domestic',
     steelOrigin: 'Non-US',
-    coreMethod: 'inhouse'
+    coreMethod: 'inhouse',
+    oilFill: 'origin'
   });
   addScenario(data, {
     name: 'Scenario B — Overseas',
     source: 'Overseas',
     steelOrigin: 'Non-US',
-    coreMethod: 'inhouse'
+    coreMethod: 'inhouse',
+    oilFill: 'origin'
   });
 
   renderScenariosChart(data);
@@ -129,6 +131,7 @@ function addScenario(data, defaults = {}) {
     steelOrigin: defaults.steelOrigin || 'Non-US',
     supplier:    defaults.supplier    || '',
     coreMethod:  defaults.coreMethod  || 'inhouse',
+    oilFill:     defaults.oilFill     || 'origin',
   };
   scenarios.push(scn);
 
@@ -195,6 +198,14 @@ function buildScenarioCard(data, scn) {
               ${disabled ? 'disabled title="Mitter Cut Core requires Non-US steel (JFE)"' : ''}
             >${m.label}</button>`;
           }).join('')}
+        </div>
+      </div>
+
+      <div class="scn-field">
+        <span class="scn-field-label">Oil Fill Location</span>
+        <div class="scn-radio-group" id="scn-oil-${scn.id}">
+          <button class="scn-radio-pill ${scn.oilFill === 'origin'  ? 'selected':''}" data-field="oilFill" data-val="origin">Fill at Origin</button>
+          <button class="scn-radio-pill ${scn.oilFill === 'lessOil' ? 'selected':''}" data-field="oilFill" data-val="lessOil">Less Oil (US Fill)</button>
         </div>
       </div>
 
@@ -335,6 +346,7 @@ function renderScenariosChart(data) {
       supplier:    scn.supplier,
       steelOrigin: scn.steelOrigin,
       coreMethod:  scn.coreMethod,
+      oilFill:     scn.oilFill,
       breakdown:   false
     });
     return { scn, result };
@@ -345,7 +357,11 @@ function renderScenariosChart(data) {
     const totalEl  = document.getElementById(`scn-total-${scn.id}`);
     const tariffEl = document.getElementById(`scn-tariff-lbl-${scn.id}`);
     if (totalEl)  totalEl.textContent  = fmt.usd(result.total, 0);
-    if (tariffEl) tariffEl.textContent = result.tariffType === 'original' ? '⚠️ Original Tariff' : '✅ Reduced Tariff';
+    if (tariffEl) {
+      const tariffBase = result.tariffType === 'original' ? '⚠️ Original Tariff' : '✅ Reduced Tariff';
+      const oilTag     = result.oilFill === 'lessOil' ? ' · Less Oil' : '';
+      tariffEl.textContent = tariffBase + oilTag;
+    }
   });
 
   if (results.length === 0) return;
@@ -489,6 +505,7 @@ function renderDeltaTable(results) {
               <th>Source</th>
               <th>Supplier</th>
               <th>Core Method</th>
+              <th>Oil Fill</th>
               <th>Tariff</th>
               ${segs.map(s => `<th class="num">${s}</th>`).join('')}
               <th class="num">Total / Unit</th>
@@ -509,8 +526,13 @@ function renderDeltaTable(results) {
                 <td>${row.scn.supplier}</td>
                 <td style="color:var(--text-dim)">${CORE_METHODS.find(m => m.value === row.scn.coreMethod)?.label || row.scn.coreMethod}</td>
                 <td>
+                  <span class="delta-badge ${row.scn.oilFill === 'lessOil' ? 'pos' : 'neu'}">
+                    ${row.scn.oilFill === 'lessOil' ? 'Less Oil (US Fill)' : 'Fill at Origin'}
+                  </span>
+                </td>
+                <td>
                   <span class="delta-badge ${row.result.tariffType === 'reduced' ? 'neg' : 'pos'}">
-                    ${row.result.tariffType === 'reduced' ? '10%' : '25%/15%'}
+                    ${row.result.tariffType === 'reduced' ? '10%' : '25%/15%'}${row.scn.oilFill === 'lessOil' ? ' − Oil' : ''}
                   </span>
                 </td>
                 ${segs.map(s => `<td class="num">${fmt.usd(row.result.segments[s] || 0, 0)}</td>`).join('')}

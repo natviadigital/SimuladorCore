@@ -200,6 +200,7 @@ function renderIntegratedCost(data) {
   const supplier    = document.getElementById('int-supplier-select').value;
   const steelOrigin = document.querySelector('input[name="intSteel"]:checked')?.value   || 'Non-US';
   const coreMethod  = document.querySelector('input[name="intCore"]:checked')?.value    || 'inhouse';
+  const oilFill     = document.querySelector('input[name="intOil"]:checked')?.value     || 'origin';
   const breakdown   = document.getElementById('int-breakdown-toggle').checked;
 
   if (!supplier) {
@@ -208,7 +209,7 @@ function renderIntegratedCost(data) {
     return;
   }
 
-  const result = computeIntegratedCost(data, { program, source, supplier, steelOrigin, coreMethod, breakdown });
+  const result = computeIntegratedCost(data, { program, source, supplier, steelOrigin, coreMethod, breakdown, oilFill });
 
   // ── Tariff badge ──
   const badge = document.getElementById('int-tariff-badge');

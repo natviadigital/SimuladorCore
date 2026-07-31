@@ -229,10 +229,12 @@ const costData = {
   },
 
   // ─── Annual Demand & Tariffs ──────────────────────────────────────────────────
+  // originalTariff / reducedTariff10      → Fill at Origin (oil included in BOM)
+  // originalTariffLessOil / reducedTariff10LessOil → Less Oil / US Fill (oil removed from BOM)
   annualDemand: {
-    E2X: { weeklyDemand: 30,   demand2027: 1500,   avgBOMCost: 60270.35,    bomCostPlus50: 90405.525,      originalTariff: 22601.38,  reducedTariff10: 9040.55   },
-    MPU: { weeklyDemand: 3.5,  demand2027: 180.25, avgBOMCost: 701064.80,   bomCostPlus50: 1051597.20,     originalTariff: 157739.58, reducedTariff10: 105159.72 },
-    P1:  { weeklyDemand: 11,   demand2027: 550,    avgBOMCost: 84603.07,    bomCostPlus50: 126904.61,      originalTariff: 31726.15,  reducedTariff10: 12690.46  },
+    E2X: { weeklyDemand: 30,   demand2027: 1500,   avgBOMCost: 60270.35,    bomCostPlus50: 90405.525,    originalTariff: 22601.38,  reducedTariff10: 9040.55,   originalTariffLessOil: 19957.18,  reducedTariff10LessOil: 7982.87   },
+    MPU: { weeklyDemand: 3.5,  demand2027: 180.25, avgBOMCost: 701064.80,   bomCostPlus50: 1051597.20,   originalTariff: 157739.58, reducedTariff10: 105159.72, originalTariffLessOil: 138124.92, reducedTariff10LessOil: 92083.28  },
+    P1:  { weeklyDemand: 11,   demand2027: 550,    avgBOMCost: 84603.07,    bomCostPlus50: 126904.61,    originalTariff: 31726.15,  reducedTariff10: 12690.46,  originalTariffLessOil: 28391.65,  reducedTariff10LessOil: 2839.17   },
   },
 };
 
