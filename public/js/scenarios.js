@@ -307,8 +307,17 @@ function renderScenariosChart(data) {
 
   if (results.length === 0) return;
 
-  // ── Build stacked bar chart ──
-  const labels = results.map(r => r.scn.name);
+  // ── Build stacked bar chart with detailed multi-line X labels ──
+  const labels = results.map(r => {
+    const coreLabel = CORE_METHODS.find(m => m.value === r.scn.coreMethod)?.label || r.scn.coreMethod;
+    const tariffLabel = r.result.tariffType === 'reduced' ? 'Reduced Tariff' : 'Original Tariff';
+    return [
+      r.scn.name,
+      `Tank: ${r.scn.supplier || 'N/A'}`,
+      `Core: ${coreLabel}`,
+      `Tariff: ${tariffLabel}`
+    ];
+  });
 
   const allSegs = ['Tank Material','Tank Logistics','Core Material','Tariff'];
   const segColors = {
@@ -351,7 +360,11 @@ function renderScenariosChart(data) {
               const r = results[idx];
               return r ? r.scn.name : '';
             },
-            title: items => items.length ? items[0].label : '',
+            title: items => {
+              if (!items.length) return '';
+              const lbl = items[0].label;
+              return Array.isArray(lbl) ? lbl[0] : lbl;
+            },
             label: ctx => {
               const v = ctx.raw;
               if (v == null || v === 0) return null;
@@ -372,12 +385,9 @@ function renderScenariosChart(data) {
           stacked: true,
           grid: { display: false },
           ticks: {
-            color: '#94a3b8', font: { size: 11 },
-            maxRotation: 20,
-            callback: function(val) {
-              const lbl = this.getLabelForValue(val);
-              return lbl.length > 24 ? lbl.substring(0, 24) + '…' : lbl;
-            }
+            color: '#94a3b8', font: { size: 10 },
+            maxRotation: 0,
+            autoSkip: false
           }
         },
         y: {
