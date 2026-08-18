@@ -179,7 +179,6 @@ function computeRealCost(shared, scn, data) {
   // Rates: E2X/P1 = 25% (non-US/Overseas) or 10% (US Domestic)
   //        MPU    = 15% (non-US/Overseas) or 10% (US Domestic)
   const useOriginal = scn.tankSource === 'Overseas' || scn.tankSteelOrigin === 'Non-US';
-  const lessOil     = scn.oilFill === 'lessOil';
 
   let tariffRate;
   if (useOriginal) {
