@@ -862,3 +862,133 @@ body {
   .scenarios-cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .charts-grid { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════
+   SECTION 4 — Custom Scenario Comparison
+════════════════════════════════════════════════ */
+
+/* ── Shared Inputs Panel ── */
+.real-shared-panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 16px 20px 18px;
+  margin-bottom: 20px;
+}
+
+.real-shared-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+.real-shared-note {
+  font-weight: 400;
+  text-transform: none;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+.real-shared-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px 20px;
+  align-items: start;
+}
+
+.real-shared-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Number inputs inside scenario cards ── */
+.scn-number-input {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 10px;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.scn-number-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: rgba(79,142,247,0.05);
+}
+.scn-number-input::placeholder { color: var(--text-muted); }
+.scn-number-input::-webkit-inner-spin-button,
+.scn-number-input::-webkit-outer-spin-button { opacity: 0.4; }
+
+/* ── Shared panel text inputs ── */
+.filter-input {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  padding: 7px 10px;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.filter-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: rgba(79,142,247,0.05);
+}
+.filter-input::placeholder { color: var(--text-muted); }
+
+/* ── Section labels inside real cards ── */
+.real-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.real-section-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--blue-light);
+  padding: 5px 0 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Two-column price row ── */
+.real-price-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Transport mode toggle with optional custom input ── */
+.real-transport-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.real-custom-input {
+  animation: fadeIn 0.15s ease;
+}
+.real-custom-input.hidden { display: none; }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
