@@ -371,6 +371,12 @@
           </div>
         </div>
 
+        <!-- BOM Cost -->
+        <div class="real-shared-field">
+          <label class="scn-field-label">BOM Cost ($) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— for tariff calc</span></label>
+          <input type="number" class="filter-input" id="real-bom-cost" min="0" step="0.01" placeholder="e.g. 60270.35" />
+        </div>
+
         <!-- Tank lbs -->
         <div class="real-shared-field">
           <label class="scn-field-label">A36 Steel (lbs)</label>
@@ -387,14 +393,16 @@
           <input type="number" class="filter-input" id="real-lbs-core" min="0" step="1" placeholder="e.g. 7320" />
         </div>
 
-        <!-- Oil (always visible for pre-filling) -->
-        <div class="real-shared-field">
-          <label class="scn-field-label">Oil — Gallons</label>
-          <input type="number" class="filter-input" id="real-gallons-oil" min="0" step="1" placeholder="e.g. 200" />
-        </div>
-        <div class="real-shared-field">
-          <label class="scn-field-label">Oil — Cost per Gallon ($)</label>
-          <input type="number" class="filter-input" id="real-cost-per-gallon" min="0" step="0.01" placeholder="e.g. 4.50" />
+        <!-- Oil inputs (hidden — preserved for future use) -->
+        <div style="display:none" id="real-oil-shared-inputs">
+          <div class="real-shared-field">
+            <label class="scn-field-label">Oil — Gallons</label>
+            <input type="number" class="filter-input" id="real-gallons-oil" min="0" step="1" placeholder="e.g. 200" />
+          </div>
+          <div class="real-shared-field">
+            <label class="scn-field-label">Oil — Cost per Gallon ($)</label>
+            <input type="number" class="filter-input" id="real-cost-per-gallon" min="0" step="0.01" placeholder="e.g. 4.50" />
+          </div>
         </div>
 
       </div>

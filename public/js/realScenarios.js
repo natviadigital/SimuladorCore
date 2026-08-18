@@ -97,11 +97,12 @@ const REAL_ALL_SEGS = ['Tank Material', 'Tank Logistics', 'Core Material', 'Core
 function getRealShared() {
   return {
     program:       document.querySelector('input[name="realProgram"]:checked')?.value || 'E2X',
-    lbsA36:        parseFloat(document.getElementById('real-lbs-a36').value)         || 0,
-    lbsSSTL304:    parseFloat(document.getElementById('real-lbs-sstl304').value)     || 0,
-    lbsCore:       parseFloat(document.getElementById('real-lbs-core').value)        || 0,
-    gallonsOil:    parseFloat(document.getElementById('real-gallons-oil').value)     || 0,
-    costPerGallon: parseFloat(document.getElementById('real-cost-per-gallon').value) || 0,
+    bomCost:       parseFloat(document.getElementById('real-bom-cost').value)         || 0,
+    lbsA36:        parseFloat(document.getElementById('real-lbs-a36').value)          || 0,
+    lbsSSTL304:    parseFloat(document.getElementById('real-lbs-sstl304').value)      || 0,
+    lbsCore:       parseFloat(document.getElementById('real-lbs-core').value)         || 0,
+    gallonsOil:    parseFloat(document.getElementById('real-gallons-oil').value)      || 0,
+    costPerGallon: parseFloat(document.getElementById('real-cost-per-gallon').value)  || 0,
   };
 }
 
@@ -173,21 +174,34 @@ function computeRealCost(shared, scn, data) {
     });
   }
 
-  // 6. Tariff — preloaded from annualDemand
+  // 6. Tariff — calculated dynamically from real BOM Cost
+  // Formula: BOM Cost × 1.5 × tariff rate
+  // Rates: E2X/P1 = 25% (non-US/Overseas) or 10% (US Domestic)
+  //        MPU    = 15% (non-US/Overseas) or 10% (US Domestic)
   const useOriginal = scn.tankSource === 'Overseas' || scn.tankSteelOrigin === 'Non-US';
-  const demand      = data.annualDemand[shared.program];
-  const tariff = useOriginal
-    ? (lessOil ? demand.originalTariffLessOil  : demand.originalTariff)
-    : (lessOil ? demand.reducedTariff10LessOil : demand.reducedTariff10);
+  const lessOil     = scn.oilFill === 'lessOil';
+
+  let tariffRate;
+  if (useOriginal) {
+    tariffRate = shared.program === 'MPU' ? 0.15 : 0.25;
+  } else {
+    tariffRate = 0.10;
+  }
+
+  const bomBase = lessOil
+    ? Math.max(0, shared.bomCost - shared.gallonsOil * shared.costPerGallon)
+    : shared.bomCost;
+  const tariff = bomBase * 1.5 * tariffRate;
 
   result.segments['Tariff'] = tariff;
   result.tariffType = useOriginal ? 'original' : 'reduced';
   result.oilFill    = scn.oilFill;
 
-  const tariffLabel = useOriginal
-    ? (lessOil ? 'Original Tariff — Less Oil (25%/15%)' : 'Original Tariff (25%/15%)')
-    : (lessOil ? 'Reduced Tariff — Less Oil (10%)'      : 'Reduced Tariff (10%)');
-  result.details.push({ comp: 'Tariff', sub: tariffLabel, amt: tariff });
+  const rateLabel = useOriginal
+    ? (shared.program === 'MPU' ? '15%' : '25%')
+    : '10%';
+  const tariffLabel = `${useOriginal ? 'Original' : 'Reduced'} Tariff (${rateLabel})${lessOil ? ' — Less Oil' : ''}`;
+  result.details.push({ comp: 'Tariff', sub: `${tariffLabel} — BOM ${fmt.usd(bomBase, 0)} × 1.5 × ${rateLabel}`, amt: tariff });
 
   // Total
   result.total = Object.values(result.segments).reduce((s, v) => s + (v || 0), 0);
@@ -200,7 +214,7 @@ function initRealScenarios(data) {
   document.querySelectorAll('input[name="realProgram"]').forEach(r => {
     r.addEventListener('change', () => renderRealChart(data));
   });
-  ['real-lbs-a36', 'real-lbs-sstl304', 'real-lbs-core', 'real-gallons-oil', 'real-cost-per-gallon'].forEach(id => {
+  ['real-bom-cost', 'real-lbs-a36', 'real-lbs-sstl304', 'real-lbs-core', 'real-gallons-oil', 'real-cost-per-gallon'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', () => renderRealChart(data));
   });
@@ -384,14 +398,16 @@ function buildRealCard(data, scn, tankSuppliers, coreSuppliers) {
         </div>
       </div>
 
-      <!-- ── OIL FILL ───────────────────────── -->
-      <div class="real-section-label" style="margin-top:12px">🛢️ Oil Fill Location</div>
-      <div class="scn-field">
-        <div class="scn-radio-group" id="real-oil-${scn.id}">
-          <button class="scn-radio-pill ${scn.oilFill === 'origin'  ? 'selected' : ''}"
-                  data-field="oilFill" data-val="origin">Fill at Origin</button>
-          <button class="scn-radio-pill ${scn.oilFill === 'lessOil' ? 'selected' : ''}"
-                  data-field="oilFill" data-val="lessOil">Less Oil (US Fill)</button>
+      <!-- ── OIL FILL (hidden — preserved for future use) ── -->
+      <div style="display:none" id="real-oil-section-${scn.id}">
+        <div class="real-section-label" style="margin-top:12px">🛢️ Oil Fill Location</div>
+        <div class="scn-field">
+          <div class="scn-radio-group" id="real-oil-${scn.id}">
+            <button class="scn-radio-pill ${scn.oilFill === 'origin'  ? 'selected' : ''}"
+                    data-field="oilFill" data-val="origin">Fill at Origin</button>
+            <button class="scn-radio-pill ${scn.oilFill === 'lessOil' ? 'selected' : ''}"
+                    data-field="oilFill" data-val="lessOil">Less Oil (US Fill)</button>
+          </div>
         </div>
       </div>
 
